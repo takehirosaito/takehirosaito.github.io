@@ -4,15 +4,38 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Bootstrap Sample</title>
+    <title>Project Schedule</title>
     <!-- BootstrapのCSS読み込み -->
     <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+    <!-- frappe-gantt のCSS読み込み -->
+    <link rel="stylesheet" href="https://unpkg.com/frappe-gantt/dist/frappe-gantt.css">
     <!-- jQuery読み込み -->
     <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
     <!-- BootstrapのJS読み込み -->
     <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+    <!-- frappe-gantt のJS読み込み -->
+    <script src="https://unpkg.com/frappe-gantt/dist/frappe-gantt.min.js"></script>
   </head>
   <body>
-    <h1>Hello, world!</h1>
+    <div class="container">
+      <h1 class="text-center">プロジェクト ガントチャート</h1>
+      <div id="gantt"></div>
+    </div>
+    <script>
+      const tasks = [
+        {id: 'phase0', name: '仕込み', start: '2024-07-10', end: '2024-07-15'},
+        {id: 'phase1', name: '商品ライン整備', start: '2024-07-10', end: '2024-07-22'},
+        {id: 'phase2', name: '価格 & クーポン運用', start: '2024-07-12', end: '2024-12-31'},
+        {id: 'phase3', name: 'SNS / 集客導線', start: '2024-07-12', end: '2024-08-31'},
+        {id: 'phase4', name: '9 月スーパーセール', start: '2024-09-01', end: '2024-09-11'},
+        {id: 'phase5', name: 'インフルエンサー × 年末商戦', start: '2024-10-01', end: '2024-11-30'},
+        {id: 'phase6', name: '12 月ピーク', start: '2024-12-01', end: '2024-12-31'},
+        {id: 'phase7', name: 'リピート強化', start: '2025-01-01', end: '2025-02-28'}
+      ];
+      const gantt = new Gantt("#gantt", tasks, {
+        view_mode: 'Month',
+        language: 'ja'
+      });
+    </script>
   </body>
 </html>
