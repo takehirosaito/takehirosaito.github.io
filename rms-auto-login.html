@@ -24,18 +24,21 @@
       .account-card .shop-name {
         font-size: 18px;
         font-weight: bold;
-        margin-bottom: 5px;
+        margin-bottom: 4px;
       }
-      .account-card .shop-url {
+      .account-card .shop-info {
         color: #888;
         font-size: 13px;
+        margin-bottom: 10px;
       }
       .btn-login {
-        font-size: 16px;
-        padding: 10px 30px;
+        font-size: 15px;
+        padding: 8px 20px;
+        margin-right: 5px;
+        margin-bottom: 5px;
       }
       .btn-delete {
-        margin-left: 10px;
+        margin-bottom: 5px;
       }
       .empty-state {
         text-align: center;
@@ -46,18 +49,62 @@
         font-size: 48px;
         margin-bottom: 20px;
       }
-      #registerForm .form-group { margin-bottom: 12px; }
+      #registerForm .form-group { margin-bottom: 10px; }
+      .section-label {
+        font-weight: bold;
+        color: #555;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 4px;
+        margin-bottom: 8px;
+        margin-top: 12px;
+        font-size: 13px;
+      }
       .security-note {
         font-size: 12px;
         color: #999;
         margin-top: 15px;
+      }
+      .flow-info {
+        background: #f8f8f8;
+        border: 1px solid #e0e0e0;
+        border-radius: 6px;
+        padding: 15px;
+        margin-bottom: 20px;
+        font-size: 13px;
+      }
+      .flow-info ol { margin-bottom: 0; padding-left: 20px; }
+      .flow-info li { margin-bottom: 4px; }
+      .bookmarklet-link {
+        display: inline-block;
+        background: #f0ad4e;
+        color: #fff;
+        padding: 4px 12px;
+        border-radius: 4px;
+        text-decoration: none;
+        font-size: 13px;
+        cursor: move;
+        margin-bottom: 5px;
+      }
+      .bookmarklet-link:hover { color: #fff; background: #ec971f; text-decoration: none; }
+      .bookmarklet-help {
+        font-size: 12px;
+        color: #999;
+        margin-top: 4px;
       }
     </style>
   </head>
   <body>
     <div class="container">
       <h1>RMS 自動ログイン</h1>
-      <p class="text-muted">登録済みアカウントをワンクリックでRMSにログインできます。</p>
+      <p class="text-muted">RMSの二段階認証をワンクリックで突破します。</p>
+
+      <div class="flow-info">
+        <strong>RMSログインの流れ</strong>
+        <ol>
+          <li><strong>ステージ1（共通認証）</strong>: R-Login ID / パスワードを送信 → 「ログイン」ボタンで自動送信</li>
+          <li><strong>ステージ2（個別認証）</strong>: 楽天会員ID / パスワードを入力 → ブックマークレットで自動入力＆送信</li>
+        </ol>
+      </div>
 
       <div class="row">
         <div class="col-md-8">
@@ -74,21 +121,30 @@
               <form id="registerForm">
                 <div class="form-group">
                   <label>表示名</label>
-                  <input type="text" class="form-control" id="displayName" placeholder="例: メイン店舗">
+                  <input type="text" class="form-control input-sm" id="displayName" placeholder="例: メイン店舗">
+                </div>
+
+                <div class="section-label">ステージ1: 共通認証（R-Login）</div>
+                <div class="form-group">
+                  <label>R-Login ID</label>
+                  <input type="text" class="form-control input-sm" id="rLoginId" placeholder="R-Login ID">
                 </div>
                 <div class="form-group">
-                  <label>店舗URL</label>
-                  <input type="text" class="form-control" id="shopUrl" placeholder="例: myshop">
+                  <label>R-Login パスワード</label>
+                  <input type="password" class="form-control input-sm" id="rLoginPassword" placeholder="R-Login パスワード">
+                </div>
+
+                <div class="section-label">ステージ2: 個別認証（楽天会員）</div>
+                <div class="form-group">
+                  <label>楽天会員ユーザID</label>
+                  <input type="text" class="form-control input-sm" id="memberUserId" placeholder="楽天会員ユーザID">
                 </div>
                 <div class="form-group">
-                  <label>ログインID</label>
-                  <input type="text" class="form-control" id="loginId" placeholder="ログインID">
+                  <label>楽天会員パスワード</label>
+                  <input type="password" class="form-control input-sm" id="memberPassword" placeholder="楽天会員パスワード">
                 </div>
-                <div class="form-group">
-                  <label>パスワード</label>
-                  <input type="password" class="form-control" id="password" placeholder="パスワード">
-                </div>
-                <button type="submit" class="btn btn-primary btn-block">登録</button>
+
+                <button type="submit" class="btn btn-primary btn-block" style="margin-top:15px;">登録</button>
               </form>
               <p class="security-note">
                 ※ ログイン情報はこのブラウザのlocalStorageに保存されます。共有PCでの利用はお控えください。
@@ -102,16 +158,15 @@
       <p><a href="index.html">&laquo; Toolsに戻る</a></p>
     </div>
 
-    <!-- ログイン用の非表示フォーム -->
-    <form id="rmsLoginForm" method="POST" action="https://glogin.rms.rakuten.co.jp/" target="_blank" style="display:none;">
-      <input type="hidden" name="login_url" id="formShopUrl">
-      <input type="hidden" name="login_id" id="formLoginId">
-      <input type="hidden" name="passwd" id="formPassword">
+    <!-- ステージ1: R-Login 共通認証用の非表示フォーム -->
+    <form id="rmsStage1Form" method="POST" action="https://glogin.rms.rakuten.co.jp/" target="_blank" style="display:none;">
+      <input type="hidden" name="login_id" id="formRLoginId">
+      <input type="hidden" name="passwd" id="formRLoginPassword">
     </form>
 
     <script>
     (function() {
-      var STORAGE_KEY = 'rms_accounts';
+      var STORAGE_KEY = 'rms_accounts_v2';
 
       function getAccounts() {
         try {
@@ -132,6 +187,18 @@
         return div.innerHTML;
       }
 
+      // ステージ2用ブックマークレットを生成
+      function buildBookmarklet(account) {
+        var uid = account.memberUserId.replace(/'/g, "\\'");
+        var pwd = account.memberPassword.replace(/'/g, "\\'");
+        var code = "javascript:void(" +
+          "document.getElementsByName('user_id')[0].value='" + uid + "'," +
+          "document.getElementsByName('user_passwd')[0].value='" + pwd + "'," +
+          "document.getElementsByName('submit')[0].click()" +
+          ")";
+        return code;
+      }
+
       function renderAccounts() {
         var accounts = getAccounts();
         var $list = $('#accountList');
@@ -150,25 +217,31 @@
         for (var i = 0; i < accounts.length; i++) {
           (function(index) {
             var acc = accounts[index];
+            var bookmarkletUrl = buildBookmarklet(acc);
+
             var card = $(
               '<div class="account-card">' +
-                '<div class="row">' +
-                  '<div class="col-xs-7">' +
-                    '<div class="shop-name">' + escapeHtml(acc.displayName) + '</div>' +
-                    '<div class="shop-url">店舗URL: ' + escapeHtml(acc.shopUrl) + ' / ID: ' + escapeHtml(acc.loginId) + '</div>' +
-                  '</div>' +
-                  '<div class="col-xs-5 text-right">' +
-                    '<button class="btn btn-success btn-login js-login">ログイン</button>' +
-                    '<button class="btn btn-default btn-sm btn-delete js-delete" title="削除">' +
-                      '<span class="glyphicon glyphicon-trash"></span>' +
-                    '</button>' +
-                  '</div>' +
+                '<div class="shop-name">' + escapeHtml(acc.displayName) + '</div>' +
+                '<div class="shop-info">R-Login ID: ' + escapeHtml(acc.rLoginId) + ' / 楽天会員ID: ' + escapeHtml(acc.memberUserId) + '</div>' +
+                '<div>' +
+                  '<button class="btn btn-success btn-login js-login">' +
+                    '<span class="glyphicon glyphicon-log-in"></span> ステージ1 ログイン' +
+                  '</button>' +
+                  '<a class="bookmarklet-link js-bookmarklet" href="' + escapeHtml(bookmarkletUrl) + '" onclick="return false;">' +
+                    'ステージ2 自動入力' +
+                  '</a>' +
+                  '<button class="btn btn-default btn-sm btn-delete js-delete" title="削除">' +
+                    '<span class="glyphicon glyphicon-trash"></span>' +
+                  '</button>' +
+                '</div>' +
+                '<div class="bookmarklet-help">' +
+                  '↑ 「ステージ2 自動入力」をブックマークバーにドラッグ&amp;ドロップで登録。ステージ1通過後にクリックで自動ログイン。' +
                 '</div>' +
               '</div>'
             );
 
             card.find('.js-login').on('click', function() {
-              doLogin(acc);
+              doStage1Login(acc);
             });
 
             card.find('.js-delete').on('click', function() {
@@ -182,11 +255,11 @@
         }
       }
 
-      function doLogin(account) {
-        $('#formShopUrl').val(account.shopUrl);
-        $('#formLoginId').val(account.loginId);
-        $('#formPassword').val(account.password);
-        $('#rmsLoginForm').submit();
+      // ステージ1: R-Login 共通認証を送信
+      function doStage1Login(account) {
+        $('#formRLoginId').val(account.rLoginId);
+        $('#formRLoginPassword').val(account.rLoginPassword);
+        $('#rmsStage1Form').submit();
       }
 
       function addAccount(account) {
@@ -208,23 +281,24 @@
         e.preventDefault();
 
         var displayName = $.trim($('#displayName').val());
-        var shopUrl = $.trim($('#shopUrl').val());
-        var loginId = $.trim($('#loginId').val());
-        var password = $('#password').val();
+        var rLoginId = $.trim($('#rLoginId').val());
+        var rLoginPassword = $('#rLoginPassword').val();
+        var memberUserId = $.trim($('#memberUserId').val());
+        var memberPassword = $('#memberPassword').val();
 
-        if (!displayName || !shopUrl || !loginId || !password) {
+        if (!displayName || !rLoginId || !rLoginPassword || !memberUserId || !memberPassword) {
           alert('すべての項目を入力してください。');
           return;
         }
 
         addAccount({
           displayName: displayName,
-          shopUrl: shopUrl,
-          loginId: loginId,
-          password: password
+          rLoginId: rLoginId,
+          rLoginPassword: rLoginPassword,
+          memberUserId: memberUserId,
+          memberPassword: memberPassword
         });
 
-        // フォームをリセット
         this.reset();
         alert('"' + displayName + '" を登録しました。');
       });
