@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>RMS 自動ログイン</title>
+    <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+    <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+    <style>
+      body { padding-top: 30px; }
+      .account-card {
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 15px;
+        background: #fff;
+        transition: box-shadow 0.2s;
+      }
+      .account-card:hover {
+        box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+      }
+      .account-card .shop-name {
+        font-size: 18px;
+        font-weight: bold;
+        margin-bottom: 5px;
+      }
+      .account-card .shop-url {
+        color: #888;
+        font-size: 13px;
+      }
+      .btn-login {
+        font-size: 16px;
+        padding: 10px 30px;
+      }
+      .btn-delete {
+        margin-left: 10px;
+      }
+      .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #999;
+      }
+      .empty-state .glyphicon {
+        font-size: 48px;
+        margin-bottom: 20px;
+      }
+      #registerForm .form-group { margin-bottom: 12px; }
+      .security-note {
+        font-size: 12px;
+        color: #999;
+        margin-top: 15px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>RMS 自動ログイン</h1>
+      <p class="text-muted">登録済みアカウントをワンクリックでRMSにログインできます。</p>
+
+      <div class="row">
+        <div class="col-md-8">
+          <h3>登録済みアカウント</h3>
+          <div id="accountList"></div>
+        </div>
+
+        <div class="col-md-4">
+          <div class="panel panel-default">
+            <div class="panel-heading">
+              <h3 class="panel-title">アカウント登録</h3>
+            </div>
+            <div class="panel-body">
+              <form id="registerForm">
+                <div class="form-group">
+                  <label>表示名</label>
+                  <input type="text" class="form-control" id="displayName" placeholder="例: メイン店舗">
+                </div>
+                <div class="form-group">
+                  <label>店舗URL</label>
+                  <input type="text" class="form-control" id="shopUrl" placeholder="例: myshop">
+                </div>
+                <div class="form-group">
+                  <label>ログインID</label>
+                  <input type="text" class="form-control" id="loginId" placeholder="ログインID">
+                </div>
+                <div class="form-group">
+                  <label>パスワード</label>
+                  <input type="password" class="form-control" id="password" placeholder="パスワード">
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">登録</button>
+              </form>
+              <p class="security-note">
+                ※ ログイン情報はこのブラウザのlocalStorageに保存されます。共有PCでの利用はお控えください。
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <hr>
+      <p><a href="index.html">&laquo; Toolsに戻る</a></p>
+    </div>
+
+    <!-- ログイン用の非表示フォーム -->
+    <form id="rmsLoginForm" method="POST" action="https://glogin.rms.rakuten.co.jp/" target="_blank" style="display:none;">
+      <input type="hidden" name="login_url" id="formShopUrl">
+      <input type="hidden" name="login_id" id="formLoginId">
+      <input type="hidden" name="passwd" id="formPassword">
+    </form>
+
+    <script>
+    (function() {
+      var STORAGE_KEY = 'rms_accounts';
+
+      function getAccounts() {
+        try {
+          var data = localStorage.getItem(STORAGE_KEY);
+          return data ? JSON.parse(data) : [];
+        } catch (e) {
+          return [];
+        }
+      }
+
+      function saveAccounts(accounts) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(accounts));
+      }
+
+      function escapeHtml(str) {
+        var div = document.createElement('div');
+        div.appendChild(document.createTextNode(str));
+        return div.innerHTML;
+      }
+
+      function renderAccounts() {
+        var accounts = getAccounts();
+        var $list = $('#accountList');
+        $list.empty();
+
+        if (accounts.length === 0) {
+          $list.html(
+            '<div class="empty-state">' +
+              '<span class="glyphicon glyphicon-user"></span>' +
+              '<p>アカウントが登録されていません。<br>右のフォームからアカウントを登録してください。</p>' +
+            '</div>'
+          );
+          return;
+        }
+
+        for (var i = 0; i < accounts.length; i++) {
+          (function(index) {
+            var acc = accounts[index];
+            var card = $(
+              '<div class="account-card">' +
+                '<div class="row">' +
+                  '<div class="col-xs-7">' +
+                    '<div class="shop-name">' + escapeHtml(acc.displayName) + '</div>' +
+                    '<div class="shop-url">店舗URL: ' + escapeHtml(acc.shopUrl) + ' / ID: ' + escapeHtml(acc.loginId) + '</div>' +
+                  '</div>' +
+                  '<div class="col-xs-5 text-right">' +
+                    '<button class="btn btn-success btn-login js-login">ログイン</button>' +
+                    '<button class="btn btn-default btn-sm btn-delete js-delete" title="削除">' +
+                      '<span class="glyphicon glyphicon-trash"></span>' +
+                    '</button>' +
+                  '</div>' +
+                '</div>' +
+              '</div>'
+            );
+
+            card.find('.js-login').on('click', function() {
+              doLogin(acc);
+            });
+
+            card.find('.js-delete').on('click', function() {
+              if (confirm('"' + acc.displayName + '" を削除しますか？')) {
+                deleteAccount(index);
+              }
+            });
+
+            $list.append(card);
+          })(i);
+        }
+      }
+
+      function doLogin(account) {
+        $('#formShopUrl').val(account.shopUrl);
+        $('#formLoginId').val(account.loginId);
+        $('#formPassword').val(account.password);
+        $('#rmsLoginForm').submit();
+      }
+
+      function addAccount(account) {
+        var accounts = getAccounts();
+        accounts.push(account);
+        saveAccounts(accounts);
+        renderAccounts();
+      }
+
+      function deleteAccount(index) {
+        var accounts = getAccounts();
+        accounts.splice(index, 1);
+        saveAccounts(accounts);
+        renderAccounts();
+      }
+
+      // フォーム送信
+      $('#registerForm').on('submit', function(e) {
+        e.preventDefault();
+
+        var displayName = $.trim($('#displayName').val());
+        var shopUrl = $.trim($('#shopUrl').val());
+        var loginId = $.trim($('#loginId').val());
+        var password = $('#password').val();
+
+        if (!displayName || !shopUrl || !loginId || !password) {
+          alert('すべての項目を入力してください。');
+          return;
+        }
+
+        addAccount({
+          displayName: displayName,
+          shopUrl: shopUrl,
+          loginId: loginId,
+          password: password
+        });
+
+        // フォームをリセット
+        this.reset();
+        alert('"' + displayName + '" を登録しました。');
+      });
+
+      // 初期描画
+      renderAccounts();
+    })();
+    </script>
+  </body>
+</html>
