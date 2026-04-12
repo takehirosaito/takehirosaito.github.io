@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ADHDサポートアプリ</title>
+    <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css" />
+    <style>
+      body { background: #f8fbff; }
+      .card {
+        background: #fff;
+        border: 1px solid #e7eef8;
+        border-radius: 10px;
+        padding: 16px;
+        margin-bottom: 16px;
+        box-shadow: 0 2px 8px rgba(0,0,0,.04);
+      }
+      .focus-time {
+        font-size: 38px;
+        font-weight: bold;
+        letter-spacing: 1px;
+      }
+      .small-note { color: #667; font-size: 13px; }
+      .done { text-decoration: line-through; color: #888; }
+      .point { font-size: 24px; font-weight: bold; color: #2a6; }
+      .safe-note {
+        background: #fff6e6;
+        border: 1px solid #f0d9a5;
+        padding: 12px;
+        border-radius: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container" style="padding-top: 24px; padding-bottom: 40px; max-width: 860px;">
+      <h1>ADHDサポートアプリ</h1>
+      <p class="safe-note">
+        このアプリはADHDを「治す」ものではなく、日々の集中・行動をサポートするためのツールです。<br />
+        つらさが強い場合は医療機関や専門家に相談してください。
+      </p>
+
+      <div class="row">
+        <div class="col-sm-6">
+          <div class="card">
+            <h3>1) 3分だけ着手</h3>
+            <p class="small-note">最初のハードルを下げるため、まずは3分だけ開始。</p>
+            <button id="quickStart" class="btn btn-primary">3分スタート</button>
+            <p style="margin-top: 12px;">残り: <span id="quickRemain">03:00</span></p>
+          </div>
+        </div>
+        <div class="col-sm-6">
+          <div class="card">
+            <h3>2) フォーカスタイマー</h3>
+            <p class="small-note">おすすめ: 25分集中 + 5分休憩</p>
+            <div class="focus-time" id="focusTime">25:00</div>
+            <div style="margin-top: 10px;">
+              <button id="focusStart" class="btn btn-success">開始</button>
+              <button id="focusPause" class="btn btn-default">一時停止</button>
+              <button id="focusReset" class="btn btn-default">リセット</button>
+            </div>
+            <p class="small-note" style="margin-top: 8px;">完了ごとに +10 ポイント</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>3) タスク分解リスト</h3>
+        <p class="small-note">「やること」を20分以内の小ステップに分解すると取り掛かりやすくなります。</p>
+        <div class="input-group" style="margin-bottom: 10px;">
+          <input id="taskInput" type="text" class="form-control" placeholder="例: 机の上を5分だけ片付ける" />
+          <span class="input-group-btn">
+            <button id="addTask" class="btn btn-info">追加</button>
+          </span>
+        </div>
+        <ul id="taskList" class="list-group"></ul>
+      </div>
+
+      <div class="card">
+        <h3>4) ごほうびポイント</h3>
+        <p>現在のポイント: <span id="point" class="point">0</span></p>
+        <p class="small-note">20ポイントたまったら、小さなごほうびを設定しよう（お茶・散歩など）。</p>
+      </div>
+    </div>
+
+    <script>
+      (function () {
+        var point = 0;
+        var pointEl = document.getElementById('point');
+        var quickBtn = document.getElementById('quickStart');
+        var quickRemainEl = document.getElementById('quickRemain');
+        var quickTimer = null;
+
+        function updatePoint(add) {
+          point += add;
+          pointEl.textContent = point;
+        }
+
+        quickBtn.addEventListener('click', function () {
+          clearInterval(quickTimer);
+          var sec = 180;
+          quickRemainEl.textContent = format(sec);
+          quickTimer = setInterval(function () {
+            sec -= 1;
+            quickRemainEl.textContent = format(sec);
+            if (sec <= 0) {
+              clearInterval(quickTimer);
+              alert('3分達成！そのまま続けるか、次の小タスクへ進もう。');
+              updatePoint(5);
+            }
+          }, 1000);
+        });
+
+        var focusEl = document.getElementById('focusTime');
+        var focusStart = document.getElementById('focusStart');
+        var focusPause = document.getElementById('focusPause');
+        var focusReset = document.getElementById('focusReset');
+        var focusSec = 1500;
+        var focusTimer = null;
+
+        function renderFocus() {
+          focusEl.textContent = format(focusSec);
+        }
+
+        focusStart.addEventListener('click', function () {
+          if (focusTimer) return;
+          focusTimer = setInterval(function () {
+            focusSec -= 1;
+            renderFocus();
+            if (focusSec <= 0) {
+              clearInterval(focusTimer);
+              focusTimer = null;
+              focusSec = 1500;
+              renderFocus();
+              alert('フォーカス1セット完了！5分休憩しよう。');
+              updatePoint(10);
+            }
+          }, 1000);
+        });
+
+        focusPause.addEventListener('click', function () {
+          clearInterval(focusTimer);
+          focusTimer = null;
+        });
+
+        focusReset.addEventListener('click', function () {
+          clearInterval(focusTimer);
+          focusTimer = null;
+          focusSec = 1500;
+          renderFocus();
+        });
+
+        var taskInput = document.getElementById('taskInput');
+        var addTask = document.getElementById('addTask');
+        var taskList = document.getElementById('taskList');
+
+        function createTask(text) {
+          var li = document.createElement('li');
+          li.className = 'list-group-item';
+
+          var label = document.createElement('span');
+          label.textContent = text;
+          label.style.marginRight = '10px';
+
+          var doneBtn = document.createElement('button');
+          doneBtn.className = 'btn btn-xs btn-success';
+          doneBtn.textContent = '完了';
+          doneBtn.style.marginRight = '6px';
+
+          var delBtn = document.createElement('button');
+          delBtn.className = 'btn btn-xs btn-default';
+          delBtn.textContent = '削除';
+
+          doneBtn.addEventListener('click', function () {
+            label.className = 'done';
+            doneBtn.disabled = true;
+            updatePoint(3);
+          });
+
+          delBtn.addEventListener('click', function () {
+            taskList.removeChild(li);
+          });
+
+          li.appendChild(label);
+          li.appendChild(doneBtn);
+          li.appendChild(delBtn);
+          taskList.appendChild(li);
+        }
+
+        addTask.addEventListener('click', function () {
+          var text = taskInput.value.trim();
+          if (!text) return;
+          createTask(text);
+          taskInput.value = '';
+          taskInput.focus();
+        });
+
+        taskInput.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') addTask.click();
+        });
+
+        function format(totalSec) {
+          var sec = Math.max(0, totalSec);
+          var m = Math.floor(sec / 60);
+          var s = sec % 60;
+          return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+        }
+
+        renderFocus();
+      })();
+    </script>
+  </body>
+</html>
